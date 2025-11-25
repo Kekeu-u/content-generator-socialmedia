@@ -6,6 +6,7 @@ import {
   improveText,
 } from "@/services/gemini";
 import { supabaseAdmin } from "@/lib/supabase";
+import type { Database } from "@/types/database";
 
 /**
  * POST /api/generate/text
@@ -95,36 +96,37 @@ export async function POST(request: NextRequest) {
     // Salvar no histórico (se userId fornecido)
     if (userId) {
       try {
-        await supabaseAdmin.from("generation_history").insert({
-          user_id: userId,
-          generation_type: "text",
-          prompt,
+        const historyData: Database["public"]["Tables"]["generation_history"]["Insert"] = {
+          user_id: userId as string,
+          generation_type: "text" as const,
+          prompt: prompt as string,
           result: JSON.stringify(result),
           model_used: result.modelUsed || "gemini-2.5-flash",
-          tokens_used: result.tokensUsed || null,
-          generation_time_ms: result.generationTimeMs || Date.now() - startTime,
+          tokens_used: result.tokensUsed ?? null,
+          generation_time_ms: result.generationTimeMs ?? (Date.now() - startTime),
           metadata: {
             type,
             platform,
             tone,
           },
-        });
+        };
+
+        await supabaseAdmin.from("generation_history").insert(historyData);
 
         // Atualizar estatísticas
         const today = new Date().toISOString().split("T")[0];
+        const statsData: Database["public"]["Tables"]["usage_statistics"]["Insert"] = {
+          user_id: userId as string,
+          date: today,
+          text_generations_count: 1,
+          total_tokens_used: result.tokensUsed || 0,
+        };
+
         await supabaseAdmin
           .from("usage_statistics")
-          .upsert(
-            {
-              user_id: userId,
-              date: today,
-              text_generations_count: 1,
-              total_tokens_used: result.tokensUsed || 0,
-            },
-            {
-              onConflict: "user_id,date",
-            }
-          );
+          .upsert(statsData, {
+            onConflict: "user_id,date",
+          });
       } catch (dbError) {
         console.error("Error saving to database:", dbError);
         // Não falhar a requisição se salvar no DB falhar
