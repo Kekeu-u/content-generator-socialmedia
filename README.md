@@ -8,20 +8,38 @@ Plataforma moderna e escalável para geração de conteúdo para redes sociais, 
 - **Linguagem:** TypeScript (Strict Mode)
 - **Estilização:** Tailwind CSS 4
 - **Fontes:** next/font (Google Fonts - Inter)
+- **Banco de Dados:** Supabase (PostgreSQL)
+- **IA:** Google Gemini 2.5 Flash (Texto e Visão)
 - **Node:** >= 18.x
 
 ## ✨ Características Principais
 
+### Arquitetura e Performance
 - ✅ **Server Components** - Renderização otimizada no servidor por padrão
 - ✅ **Client Components** - Interatividade apenas onde necessário
 - ✅ **TypeScript Strict** - Type safety completo com `noImplicitAny`
 - ✅ **SEO Otimizado** - Metadados configurados para máxima visibilidade
 - ✅ **Performance** - React Suspense e loading states para UX superior
 - ✅ **Error Handling** - Error boundaries customizados em todas as rotas
-- ✅ **API Routes** - Backend for Frontend com Route Handlers
-- ✅ **Design System** - Componentes UI reutilizáveis e consistentes
-- ✅ **Custom Hooks** - useDebounce, useAuth e mais
-- ✅ **Responsividade** - Mobile-first design
+
+### IA e Geração de Conteúdo
+- 🤖 **Geração de Texto com IA** - Gemini 2.5 Flash para posts em redes sociais
+- 🎯 **Otimizado por Plataforma** - Conteúdo adaptado para Instagram, Facebook, Twitter, LinkedIn e TikTok
+- 📝 **Múltiplos Tons** - Profissional, casual, engraçado ou inspiracional
+- 🏷️ **Hashtags Inteligentes** - Geração automática de hashtags relevantes
+- 🎨 **Análise de Imagens** - Visão computacional para análise e sugestões
+
+### Backend e Banco de Dados
+- 💾 **Supabase** - PostgreSQL com Row Level Security (RLS)
+- 📊 **Histórico de Gerações** - Rastreamento completo de uso de IA
+- 📈 **Estatísticas de Uso** - Métricas detalhadas por usuário
+- 🔐 **Autenticação** - Sistema de auth integrado
+
+### UI/UX
+- 🎨 **Design System** - Componentes UI reutilizáveis e consistentes
+- 🪝 **Custom Hooks** - useDebounce, useAuth e mais
+- 📱 **Responsividade** - Mobile-first design
+- 🌐 **API Routes** - Backend for Frontend com Route Handlers
 
 ## 📁 Estrutura do Projeto
 
@@ -51,12 +69,57 @@ Plataforma moderna e escalável para geração de conteúdo para redes sociais, 
   /services            # Lógica de API
 ```
 
+## ⚙️ Configuração
+
+### 1. Configurar Supabase
+
+1. Crie uma conta em [supabase.com](https://supabase.com)
+2. Crie um novo projeto
+3. Execute o schema SQL do arquivo `supabase-schema.sql` no SQL Editor do Supabase
+4. Copie as credenciais do projeto:
+   - URL do projeto
+   - Anon/Public Key
+   - Service Role Key (apenas para servidor)
+
+### 2. Configurar Gemini API
+
+1. Acesse [Google AI Studio](https://makersuite.google.com/app/apikey)
+2. Crie uma API Key gratuita
+3. Copie a chave gerada
+
+### 3. Variáveis de Ambiente
+
+Copie o arquivo `.env.example` para `.env.local`:
+
+```bash
+cp .env.example .env.local
+```
+
+Preencha as variáveis de ambiente:
+
+```bash
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://seu-projeto.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=sua_anon_key_aqui
+SUPABASE_SERVICE_ROLE_KEY=sua_service_role_key_aqui
+
+# Gemini AI
+GEMINI_API_KEY=sua_gemini_api_key_aqui
+GEMINI_TEXT_MODEL=gemini-2.5-flash
+GEMINI_IMAGE_MODEL=gemini-2.5-flash
+
+# App
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
 ## 🏃 Como Executar
 
 ### Pré-requisitos
 
 - Node.js >= 18.x
 - npm ou yarn
+- Conta Supabase configurada
+- Gemini API Key
 
 ### Instalação
 
@@ -106,24 +169,78 @@ export default function Example() {
 
 ## 🔌 API Routes
 
-### Endpoints disponíveis:
+### Geração de Conteúdo com IA
 
-#### Produtos
+#### Geração de Texto
+- `POST /api/generate/text` - Gera texto usando Gemini 2.5 Flash
+
+**Parâmetros:**
+```typescript
+{
+  prompt: string;              // Tópico ou assunto
+  type?: "general" | "social-media" | "variations" | "improve";
+  platform?: "instagram" | "facebook" | "twitter" | "linkedin" | "tiktok";
+  tone?: "professional" | "casual" | "funny" | "inspirational";
+  targetAudience?: string;
+  includeHashtags?: boolean;
+  includeEmojis?: boolean;
+  variationsCount?: number;
+  userId?: string;            // Para rastreamento
+}
+```
+
+**Exemplo:**
+```typescript
+const response = await fetch('/api/generate/text', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    prompt: 'Lançamento de produto inovador',
+    type: 'social-media',
+    platform: 'instagram',
+    tone: 'professional',
+    includeHashtags: true,
+    includeEmojis: true
+  })
+});
+
+const data = await response.json();
+// { success: true, data: { content: "...", hashtags: ["#inovacao", ...] } }
+```
+
+#### Análise de Imagem
+- `POST /api/analyze/image` - Analisa imagem usando Gemini 2.5 Flash (visão)
+
+**Parâmetros:**
+```typescript
+{
+  imageData: string;  // Base64 da imagem
+  prompt?: string;    // Pergunta específica sobre a imagem
+  userId?: string;
+}
+```
+
+**Exemplo:**
+```typescript
+const response = await fetch('/api/analyze/image', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    imageData: 'data:image/jpeg;base64,/9j/4AAQSkZJRg...',
+    prompt: 'Crie uma legenda atraente para Instagram'
+  })
+});
+```
+
+### Produtos (Exemplo)
 - `GET /api/products` - Listar produtos (paginado)
 - `POST /api/products` - Criar produto
 - `GET /api/products/[id]` - Buscar produto por ID
 - `PUT /api/products/[id]` - Atualizar produto
 - `DELETE /api/products/[id]` - Deletar produto
 
-#### Autenticação
+### Autenticação
 - `POST /api/auth/login` - Login de usuário
-
-### Exemplo de requisição:
-
-```typescript
-const response = await fetch('/api/products?page=1&pageSize=10');
-const data = await response.json();
-```
 
 ## 🪝 Custom Hooks
 

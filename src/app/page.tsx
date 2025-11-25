@@ -21,8 +21,14 @@ export default function HomePage() {
 
           <div className="flex flex-col gap-4 sm:flex-row">
             <Link
-              href="/products"
+              href="/generate"
               className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition-colors hover:bg-blue-700"
+            >
+              Gerar Conteúdo IA
+            </Link>
+            <Link
+              href="/products"
+              className="rounded-lg border border-gray-300 px-6 py-3 font-semibold transition-colors hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800"
             >
               Ver Produtos
             </Link>
