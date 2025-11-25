@@ -18,10 +18,11 @@ const mockProducts: Product[] = [
 // GET /api/products/[id] - Buscar produto por ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const product = mockProducts.find((p) => p.id === params.id);
+    const { id } = await params;
+    const product = mockProducts.find((p) => p.id === id);
 
     if (!product) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
@@ -38,7 +39,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error(`GET /api/products/${params.id} error:`, error);
+    console.error(`GET /api/products error:`, error);
     return NextResponse.json(
       { error: "Failed to fetch product" },
       { status: 500 }
@@ -49,10 +50,11 @@ export async function GET(
 // PUT /api/products/[id] - Atualizar produto
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const productIndex = mockProducts.findIndex((p) => p.id === params.id);
+    const { id } = await params;
+    const productIndex = mockProducts.findIndex((p) => p.id === id);
 
     if (productIndex === -1) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
@@ -62,7 +64,7 @@ export async function PUT(
     const updatedProduct: Product = {
       ...mockProducts[productIndex],
       ...body,
-      id: params.id, // Não permitir mudança de ID
+      id, // Não permitir mudança de ID
     };
 
     // Em produção, atualizar no banco de dados
@@ -75,7 +77,7 @@ export async function PUT(
 
     return NextResponse.json(response, { status: 200 });
   } catch (error) {
-    console.error(`PUT /api/products/${params.id} error:`, error);
+    console.error(`PUT /api/products error:`, error);
     return NextResponse.json(
       { error: "Failed to update product" },
       { status: 500 }
@@ -86,10 +88,11 @@ export async function PUT(
 // DELETE /api/products/[id] - Deletar produto
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const productIndex = mockProducts.findIndex((p) => p.id === params.id);
+    const { id } = await params;
+    const productIndex = mockProducts.findIndex((p) => p.id === id);
 
     if (productIndex === -1) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
@@ -105,7 +108,7 @@ export async function DELETE(
 
     return NextResponse.json(response, { status: 200 });
   } catch (error) {
-    console.error(`DELETE /api/products/${params.id} error:`, error);
+    console.error(`DELETE /api/products error:`, error);
     return NextResponse.json(
       { error: "Failed to delete product" },
       { status: 500 }
