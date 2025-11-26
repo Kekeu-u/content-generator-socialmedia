@@ -13,6 +13,21 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
  */
 export async function POST(request: NextRequest) {
   try {
+    // Validar variáveis de ambiente em runtime
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return NextResponse.json(
+        { error: "Supabase environment variables not configured" },
+        { status: 500 }
+      );
+    }
+
+    if (!process.env.GEMINI_API_KEY) {
+      return NextResponse.json(
+        { error: "Gemini API key not configured" },
+        { status: 500 }
+      );
+    }
+
     const body = await request.json();
     const {
       prompt,
