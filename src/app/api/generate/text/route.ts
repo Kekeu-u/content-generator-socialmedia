@@ -4,7 +4,7 @@ import {
   generateSocialMediaPost,
   generateVariations,
   improveText,
-} from "@/services/gemini";
+} from "@/services/ai-text";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 /**
@@ -21,9 +21,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!process.env.GEMINI_API_KEY) {
+    // Verificar se pelo menos uma API de IA está configurada
+    if (!process.env.PERPLEXITY_API_KEY && !process.env.GEMINI_API_KEY) {
       return NextResponse.json(
-        { error: "Gemini API key not configured" },
+        { error: "No AI API key configured (Perplexity or Gemini required)" },
         { status: 500 }
       );
     }
