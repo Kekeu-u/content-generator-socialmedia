@@ -5,8 +5,7 @@ import {
   generateVariations,
   improveText,
 } from "@/services/gemini";
-import { supabaseAdmin } from "@/lib/supabase";
-import type { Database } from "@/types/database";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 /**
  * POST /api/generate/text
@@ -96,7 +95,6 @@ export async function POST(request: NextRequest) {
     // Salvar no histórico (se userId fornecido)
     if (userId) {
       try {
-        // @ts-expect-error - Supabase type inference issue, types are correct
         await supabaseAdmin.from("generation_history").insert({
           user_id: userId,
           generation_type: "text",
@@ -114,7 +112,6 @@ export async function POST(request: NextRequest) {
 
         // Atualizar estatísticas
         const today = new Date().toISOString().split("T")[0];
-        // @ts-expect-error - Supabase type inference issue, types are correct
         await supabaseAdmin.from("usage_statistics").upsert(
           {
             user_id: userId,
