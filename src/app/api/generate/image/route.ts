@@ -1,30 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateImage } from "@/services/gemini";
-import { supabaseAdmin } from "@/lib/supabase";
+import {
+  generateImage,
+  editImage,
+  remixImage,
+  generateSocialMediaImage,
+} from "@/services/reve-images";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 /**
  * POST /api/generate/image
- * Gera imagem usando IA (placeholder para integração futura)
- *
- * NOTA: Gemini 2.5 Flash não suporta geração de imagens diretamente.
- * Você precisará integrar com:
- * - Google Imagen API
- * - DALL-E (OpenAI)
- * - Stable Diffusion
- * - Midjourney API
+ * Gera imagens usando REVE AI
  */
 export async function POST(request: NextRequest) {
   try {
+    // Validar variáveis de ambiente
+    if (!process.env.REVE_API_KEY) {
+      return NextResponse.json(
+        { error: "REVE_API_KEY not configured" },
+        { status: 500 }
+      );
+    }
+
     const body = await request.json();
     const {
       prompt,
-      size = "1024x1024",
-      style = "realistic",
+      type = "create",
+      platform,
+      imageBase64,
+      maskBase64,
+      strength,
+      width,
+      height,
+      quality,
       userId,
-      postId,
     } = body;
 
-    // Validação
     if (!prompt) {
       return NextResponse.json(
         { error: "Prompt is required" },
@@ -33,91 +43,100 @@ export async function POST(request: NextRequest) {
     }
 
     const startTime = Date.now();
+    let result;
 
-    // IMPORTANTE: Implementar integração real com API de geração de imagens
-    // Por enquanto, retorna um erro informativo
-    return NextResponse.json(
-      {
-        error: "Image generation not implemented",
-        message:
-          "Please integrate with Imagen, DALL-E, or Stable Diffusion API to enable image generation.",
-        alternatives: [
-          {
-            provider: "Google Imagen",
-            url: "https://cloud.google.com/vertex-ai/docs/generative-ai/image/overview",
-          },
-          {
-            provider: "OpenAI DALL-E",
-            url: "https://platform.openai.com/docs/guides/images",
-          },
-          {
-            provider: "Stability AI",
-            url: "https://platform.stability.ai/docs/api-reference",
-          },
-        ],
-      },
-      { status: 501 }
-    );
+    // Escolher tipo de geração
+    switch (type) {
+      case "social-media":
+        if (!platform) {
+          return NextResponse.json(
+            { error: "Platform is required for social media images" },
+            { status: 400 }
+          );
+        }
+        result = await generateSocialMediaImage({ prompt, platform });
+        break;
 
-    /*
-    // Exemplo de implementação quando integrado:
+      case "edit":
+        if (!imageBase64) {
+          return NextResponse.json(
+            { error: "imageBase64 is required for image editing" },
+            { status: 400 }
+          );
+        }
+        result = await editImage({ imageBase64, prompt, maskBase64 });
+        break;
 
-    const result = await generateImage(prompt);
+      case "remix":
+        if (!imageBase64) {
+          return NextResponse.json(
+            { error: "imageBase64 is required for image remix" },
+            { status: 400 }
+          );
+        }
+        result = await remixImage({ imageBase64, prompt, strength });
+        break;
 
-    // Salvar no banco de dados
-    if (userId) {
-      const { data: imageRecord } = await supabaseAdmin
-        .from("generated_images")
-        .insert({
+      default:
+        // Geração simples
+        result = await generateImage({ prompt, width, height, quality });
+        break;
+    }
+
+    // Salvar no histórico (se userId fornecido)
+    if (userId && process.env.NEXT_PUBLIC_SUPABASE_URL) {
+      try {
+        await supabaseAdmin.from("generation_history").insert({
           user_id: userId,
-          post_id: postId || null,
+          generation_type: "image",
           prompt,
-          image_url: result.imageUrl,
+          result: result.imageBase64 || "",
           model_used: result.modelUsed,
-          generation_metadata: {
-            size,
-            style,
-            generationTimeMs: result.generationTimeMs,
+          tokens_used: result.creditsUsed || null,
+          generation_time_ms: result.generationTimeMs,
+          metadata: {
+            type,
+            platform,
+            width,
+            height,
+            quality,
+            contentViolation: result.contentViolation,
+            creditsRemaining: result.creditsRemaining,
           },
-        })
-        .select()
-        .single();
+        });
 
-      // Salvar no histórico
-      await supabaseAdmin.from("generation_history").insert({
-        user_id: userId,
-        generation_type: "image",
-        prompt,
-        result: result.imageUrl,
-        model_used: result.modelUsed,
-        generation_time_ms: result.generationTimeMs,
-        metadata: { size, style },
-      });
-
-      // Atualizar estatísticas
-      const today = new Date().toISOString().split("T")[0];
-      await supabaseAdmin
-        .from("usage_statistics")
-        .upsert(
+        // Atualizar estatísticas
+        const today = new Date().toISOString().split("T")[0];
+        await supabaseAdmin.from("usage_statistics").upsert(
           {
             user_id: userId,
             date: today,
             image_generations_count: 1,
+            total_cost: result.creditsUsed || 0,
           },
-          { onConflict: "user_id,date" }
+          {
+            onConflict: "user_id,date",
+          }
         );
+      } catch (dbError) {
+        console.error("Error saving to database:", dbError);
+      }
     }
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        imageUrl: result.imageUrl,
-        prompt,
-        modelUsed: result.modelUsed,
-        generationTimeMs: Date.now() - startTime,
+    return NextResponse.json(
+      {
+        success: true,
+        data: {
+          imageBase64: result.imageBase64,
+          modelUsed: result.modelUsed,
+          generationTimeMs: result.generationTimeMs,
+          creditsUsed: result.creditsUsed,
+          creditsRemaining: result.creditsRemaining,
+          contentViolation: result.contentViolation,
+        },
       },
-    });
-    */
+      { status: 200 }
+    );
   } catch (error) {
     console.error("Image generation error:", error);
     return NextResponse.json(
@@ -132,34 +151,53 @@ export async function POST(request: NextRequest) {
 
 /**
  * GET /api/generate/image
- * Retorna informações sobre a API de geração de imagens
+ * Informações sobre a API de geração de imagens
  */
 export async function GET() {
   return NextResponse.json({
     name: "Image Generation API",
     version: "1.0.0",
-    status: "Not Implemented",
-    message:
-      "Image generation requires integration with external API (Imagen, DALL-E, or Stable Diffusion)",
-    recommendedProviders: [
-      {
-        name: "Google Imagen",
-        model: "imagen-2",
-        pros: ["High quality", "Fast", "Google Cloud integration"],
-        docs: "https://cloud.google.com/vertex-ai/docs/generative-ai/image/overview",
+    provider: "REVE AI",
+    endpoints: {
+      POST: {
+        description: "Generate images using REVE AI",
+        parameters: {
+          prompt: "string (required) - Description of the image",
+          type: "create | edit | remix | social-media",
+          platform: "instagram | facebook | twitter | linkedin | story (for social-media type)",
+          imageBase64: "string (required for edit/remix) - Base64 encoded image",
+          maskBase64: "string (optional for edit) - Mask for selective editing",
+          strength: "number (optional for remix) - Remix strength 0-1",
+          width: "number (optional) - Image width",
+          height: "number (optional) - Image height",
+          quality: "standard | hd",
+          userId: "string (optional) - For tracking",
+        },
+        examples: {
+          create: {
+            prompt: "A beautiful sunset over mountains",
+            type: "create",
+            quality: "hd",
+          },
+          "social-media": {
+            prompt: "Modern tech product photo",
+            type: "social-media",
+            platform: "instagram",
+          },
+          edit: {
+            prompt: "Add a rainbow in the sky",
+            type: "edit",
+            imageBase64: "data:image/png;base64,...",
+          },
+        },
       },
-      {
-        name: "OpenAI DALL-E 3",
-        model: "dall-e-3",
-        pros: ["Best quality", "Good prompt understanding", "Easy to use"],
-        docs: "https://platform.openai.com/docs/guides/images",
-      },
-      {
-        name: "Stability AI",
-        model: "stable-diffusion-xl",
-        pros: ["Open source", "Customizable", "Cost effective"],
-        docs: "https://platform.stability.ai/docs/api-reference",
-      },
-    ],
+    },
+    dimensions: {
+      instagram: "1080x1080 (square post)",
+      facebook: "1200x630 (shared post)",
+      twitter: "1200x675 (card)",
+      linkedin: "1200x627 (post)",
+      story: "1080x1920 (9:16 stories)",
+    },
   });
 }
