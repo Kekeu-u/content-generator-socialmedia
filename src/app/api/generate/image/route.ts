@@ -4,22 +4,17 @@ import {
   editImage,
   remixImage,
   generateSocialMediaImage,
-} from "@/services/reve-images";
+} from "@/services/g4f-images";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 /**
  * POST /api/generate/image
- * Gera imagens usando REVE AI
+ * Gera imagens usando GPT4Free (GRÁTIS!) com fallback para REVE
  */
 export async function POST(request: NextRequest) {
   try {
-    // Validar variáveis de ambiente
-    if (!process.env.REVE_API_KEY) {
-      return NextResponse.json(
-        { error: "REVE_API_KEY not configured" },
-        { status: 500 }
-      );
-    }
+    // GPT4Free é grátis e não precisa de API key!
+    // REVE é usado apenas como fallback para edição/remix
 
     const body = await request.json();
     const {

@@ -4,30 +4,17 @@ import {
   generateSocialMediaPost,
   generateVariations,
   improveText,
-} from "@/services/ai-text";
+} from "@/services/g4f-text";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 /**
  * POST /api/generate/text
- * Gera texto usando Gemini 2.5 Flash
+ * Gera texto usando GPT4Free (GPT-4, Gemini, Claude, etc)
  */
 export async function POST(request: NextRequest) {
   try {
-    // Validar variáveis de ambiente em runtime
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      return NextResponse.json(
-        { error: "Supabase environment variables not configured" },
-        { status: 500 }
-      );
-    }
-
-    // Verificar se pelo menos uma API de IA está configurada
-    if (!process.env.PERPLEXITY_API_KEY && !process.env.GEMINI_API_KEY) {
-      return NextResponse.json(
-        { error: "No AI API key configured (Perplexity or Gemini required)" },
-        { status: 500 }
-      );
-    }
+    // Validar variáveis de ambiente em runtime (opcional para Supabase)
+    // GPT4Free é grátis e não precisa de API key!
 
     const body = await request.json();
     const {
