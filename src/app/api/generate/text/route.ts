@@ -4,7 +4,7 @@ import {
   generateSocialMediaPost,
   generateVariations,
   improveText,
-} from "@/services/gemini";
+} from "@/services/ai-text";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 /**
@@ -13,6 +13,22 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
  */
 export async function POST(request: NextRequest) {
   try {
+    // Validar variáveis de ambiente em runtime
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return NextResponse.json(
+        { error: "Supabase environment variables not configured" },
+        { status: 500 }
+      );
+    }
+
+    // Verificar se pelo menos uma API de IA está configurada
+    if (!process.env.PERPLEXITY_API_KEY && !process.env.GEMINI_API_KEY) {
+      return NextResponse.json(
+        { error: "No AI API key configured (Perplexity or Gemini required)" },
+        { status: 500 }
+      );
+    }
+
     const body = await request.json();
     const {
       prompt,

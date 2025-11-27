@@ -1,19 +1,15 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database";
 
-// Validar variáveis de ambiente
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(
-    "Missing Supabase environment variables. Please check your .env.local file."
-  );
-}
+// Pegar variáveis de ambiente (não validar no import time para permitir build)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 
 /**
  * Cliente Supabase para uso no cliente (browser)
  * Usa a ANON KEY para operações autenticadas via RLS
+ *
+ * IMPORTANTE: As variáveis de ambiente são validadas em runtime, não em build time
  */
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
