@@ -1,15 +1,9 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Validar API key
-const apiKey = process.env.GEMINI_API_KEY;
+// Pegar API key (não validar no import time para permitir build)
+const apiKey = process.env.GEMINI_API_KEY || "";
 
-if (!apiKey) {
-  throw new Error(
-    "Missing GEMINI_API_KEY environment variable. Please check your .env.local file."
-  );
-}
-
-// Inicializar cliente Gemini
+// Inicializar cliente Gemini (será validado em runtime)
 const genAI = new GoogleGenerativeAI(apiKey);
 
 /**
